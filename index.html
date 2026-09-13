@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Цифровая история Казахстана — бот</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky-top:#cdeffb;
+    --sky-mid:#bfeee0;
+    --sky-bot:#a9e6c6;
+    --glass:rgba(255,255,255,0.38);
+    --glass-strong:rgba(255,255,255,0.62);
+    --glass-border:rgba(255,255,255,0.75);
+    --blue:#0093c9;
+    --blue-deep:#0074a8;
+    --green:#37b06b;
+    --green-deep:#1f9456;
+    --ink:#0c3b46;
+    --ink-muted:#4c7686;
+    --ink-faint:#7ea3ae;
+    --error:#d1543f;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:'Nunito', sans-serif;
+    color:var(--ink);
+    display:flex;
+    flex-direction:column;
+    min-height:100vh;
+    position:relative;
+    overflow-x:hidden;
+    background:
+      radial-gradient(ellipse 90% 60% at 15% 0%, rgba(255,255,255,0.9), transparent 60%),
+      linear-gradient(160deg, var(--sky-top) 0%, var(--sky-mid) 48%, var(--sky-bot) 100%);
+  }
+
+  /* ================= ambient background: swoosh lines + bokeh ================= */
+  #bgLayer{
+    position:fixed;
+    inset:0;
+    z-index:0;
+    overflow:hidden;
+    pointer-events:none;
+  }
+  .swoosh{
+    position:absolute;
+    left:0;
+    width:200%;
+    height:220px;
+    opacity:0.55;
+    filter:blur(0.4px);
+  }
+  .swoosh.s1{ top:8%;  animation:driftLeft 26s linear infinite; opacity:0.5; }
+  .swoosh.s2{ top:38%; animation:driftRight 34s linear infinite; opacity:0.4; height:260px; }
+  .swoosh.s3{ top:66%; animation:driftLeft 42s linear infinite; opacity:0.55; }
+  .swoosh.s4{ top:86%; animation:driftRight 20s linear infinite; opacity:0.3; height:180px; }
+
+  @keyframes driftLeft{
+    from{ transform:translateX(0); }
+    to{ transform:translateX(-50%); }
+  }
+  @keyframes driftRight{
+    from{ transform:translateX(-50%); }
+    to{ transform:translateX(0); }
+  }
+
+  .bokeh{
+    position:absolute;
+    border-radius:50%;
+    background:radial-gradient(circle at 32% 28%, rgba(255,255,255,0.95), rgba(255,255,255,0.15) 45%, transparent 70%);
+    filter:blur(1px);
+    animation:float 12s ease-in-out infinite;
+    opacity:0.8;
+  }
+  .bokeh.b1{ width:90px; height:90px; left:8%; top:14%; animation-duration:14s; }
+  .bokeh.b2{ width:50px; height:50px; left:82%; top:22%; animation-duration:10s; animation-delay:1s; }
+  .bokeh.b3{ width:130px; height:130px; left:70%; top:62%; animation-duration:17s; animation-delay:2s; }
+  .bokeh.b4{ width:60px; height:60px; left:20%; top:76%; animation-duration:11s; animation-delay:0.5s; }
+  .bokeh.b5{ width:36px; height:36px; left:46%; top:8%; animation-duration:9s; animation-delay:1.5s; }
+
+  @keyframes float{
+    0%,100%{ transform:translateY(0) translateX(0); }
+    50%{ transform:translateY(-22px) translateX(10px); }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .swoosh, .bokeh{ animation:none !important; }
+  }
+
+  /* ================= layout ================= */
+  header, main, footer{ position:relative; z-index:1; }
+
+  header{
+    padding:22px 20px 14px;
+  }
+  .header-inner{
+    max-width:760px;
+    margin:0 auto;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    background:var(--glass);
+    backdrop-filter:blur(18px) saturate(140%);
+    -webkit-backdrop-filter:blur(18px) saturate(140%);
+    border:1px solid var(--glass-border);
+    border-radius:22px;
+    padding:20px 22px;
+    box-shadow:
+      0 8px 28px rgba(0,110,140,0.14),
+      inset 0 1px 0 rgba(255,255,255,0.9);
+    position:relative;
+    overflow:hidden;
+  }
+  .header-inner::before{
+    content:'';
+    position:absolute;
+    top:0; left:0; right:0;
+    height:46%;
+    background:linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0));
+    pointer-events:none;
+    border-radius:22px 22px 50% 50% / 22px 22px 30px 30px;
+  }
+  .title-block{ position:relative; }
+  .title-block h1{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:700;
+    font-size:1.5rem;
+    margin:0 0 6px;
+    background:linear-gradient(100deg, var(--blue-deep), var(--green-deep));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+  .title-block p{
+    margin:0;
+    color:var(--ink-muted);
+    font-size:0.86rem;
+    line-height:1.5;
+    max-width:54ch;
+    font-weight:600;
+  }
+  .header-actions{ position:relative; flex-shrink:0; }
+  .icon-btn{
+    background:var(--glass-strong);
+    border:1px solid var(--glass-border);
+    color:var(--blue-deep);
+    border-radius:14px;
+    padding:9px 14px;
+    font-family:'Nunito', sans-serif;
+    font-weight:700;
+    font-size:0.78rem;
+    cursor:pointer;
+    transition:transform 0.15s, box-shadow 0.15s;
+    white-space:nowrap;
+    box-shadow:0 3px 10px rgba(0,110,140,0.12), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .icon-btn:hover{ transform:translateY(-1px); box-shadow:0 5px 14px rgba(0,110,140,0.2), inset 0 1px 0 rgba(255,255,255,0.9); }
+  .icon-btn:active{ transform:translateY(0); }
+
+  main{
+    flex:1;
+    overflow-y:auto;
+    padding:18px 20px 12px;
+  }
+  .chat-inner{
+    max-width:760px;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+
+  .empty-state{
+    margin-top:20px;
+    padding:24px 22px;
+    background:var(--glass);
+    backdrop-filter:blur(18px) saturate(140%);
+    -webkit-backdrop-filter:blur(18px) saturate(140%);
+    border:1px solid var(--glass-border);
+    border-radius:22px;
+    box-shadow:0 8px 28px rgba(0,110,140,0.12), inset 0 1px 0 rgba(255,255,255,0.9);
+    position:relative;
+    overflow:hidden;
+  }
+  .empty-state::before{
+    content:'';
+    position:absolute;
+    top:0; left:0; right:0; height:40%;
+    background:linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0));
+    pointer-events:none;
+  }
+  .empty-state h2{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:600;
+    font-size:1.08rem;
+    margin:0 0 10px;
+    color:var(--green-deep);
+    position:relative;
+  }
+  .empty-state p{
+    margin:0 0 14px;
+    color:var(--ink-muted);
+    font-size:0.88rem;
+    line-height:1.6;
+    font-weight:600;
+    position:relative;
+  }
+  .example-q{
+    display:block;
+    width:100%;
+    text-align:left;
+    background:rgba(255,255,255,0.55);
+    border:1px solid rgba(255,255,255,0.8);
+    color:var(--ink);
+    padding:11px 14px;
+    margin-bottom:9px;
+    border-radius:14px;
+    font-family:'Nunito', sans-serif;
+    font-weight:700;
+    font-size:0.85rem;
+    cursor:pointer;
+    transition:transform 0.15s, box-shadow 0.15s, background 0.15s;
+    position:relative;
+    box-shadow:0 2px 8px rgba(0,110,140,0.08);
+  }
+  .example-q:hover{
+    transform:translateY(-1px) scale(1.005);
+    background:rgba(255,255,255,0.8);
+    box-shadow:0 5px 14px rgba(0,110,140,0.16);
+  }
+  .example-q:last-child{margin-bottom:0;}
+
+  .msg{
+    display:flex;
+    flex-direction:column;
+    max-width:88%;
+  }
+  .msg.user{align-self:flex-end; align-items:flex-end;}
+  .msg.bot{align-self:flex-start; align-items:flex-start;}
+
+  .msg-label{
+    font-size:0.7rem;
+    letter-spacing:0.02em;
+    color:var(--ink-faint);
+    margin-bottom:5px;
+    font-family:'Nunito', sans-serif;
+    font-weight:700;
+    padding:0 4px;
+  }
+  .bubble{
+    padding:13px 16px;
+    border-radius:18px;
+    line-height:1.55;
+    font-size:0.94rem;
+    white-space:pre-wrap;
+    font-weight:600;
+    position:relative;
+    overflow:hidden;
+    box-shadow:0 6px 18px rgba(0,110,140,0.14), inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .msg.user .bubble{
+    background:linear-gradient(135deg, var(--green) 0%, var(--blue) 100%);
+    color:#ffffff;
+    border-top-right-radius:4px;
+    border:1px solid rgba(255,255,255,0.5);
+  }
+  .msg.user .bubble::before{
+    content:'';
+    position:absolute;
+    top:0; left:0; right:0; height:45%;
+    background:linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0));
+    pointer-events:none;
+  }
+  .msg.bot .bubble{
+    background:var(--glass-strong);
+    backdrop-filter:blur(14px) saturate(140%);
+    -webkit-backdrop-filter:blur(14px) saturate(140%);
+    border:1px solid var(--glass-border);
+    border-top-left-radius:4px;
+    color:var(--ink);
+  }
+  .msg.bot .bubble::before{
+    content:'';
+    position:absolute;
+    top:0; left:0; right:0; height:45%;
+    background:linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0));
+    pointer-events:none;
+  }
+  .msg.bot .bubble.error{
+    border-color:var(--error);
+    color:#8a3223;
+    background:rgba(255,235,230,0.75);
+  }
+
+  .typing{
+    display:inline-flex;
+    gap:5px;
+    padding:4px 0;
+    position:relative;
+  }
+  .typing span{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--blue-deep);
+    animation:blink 1.2s infinite ease-in-out;
+  }
+  .typing span:nth-child(2){animation-delay:0.2s; background:var(--green-deep);}
+  .typing span:nth-child(3){animation-delay:0.4s;}
+  @keyframes blink{
+    0%,80%,100%{opacity:0.25;}
+    40%{opacity:1;}
+  }
+
+  footer{
+    padding:12px 20px 22px;
+  }
+  .input-inner{
+    max-width:760px;
+    margin:0 auto;
+    display:flex;
+    gap:10px;
+    align-items:flex-end;
+    background:var(--glass);
+    backdrop-filter:blur(18px) saturate(140%);
+    -webkit-backdrop-filter:blur(18px) saturate(140%);
+    border:1px solid var(--glass-border);
+    border-radius:22px;
+    padding:12px 12px;
+    box-shadow:0 8px 28px rgba(0,110,140,0.14), inset 0 1px 0 rgba(255,255,255,0.9);
+    position:relative;
+    overflow:hidden;
+  }
+  .input-inner::before{
+    content:'';
+    position:absolute;
+    top:0; left:0; right:0; height:50%;
+    background:linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0));
+    pointer-events:none;
+  }
+  textarea{
+    flex:1;
+    resize:none;
+    background:rgba(255,255,255,0.65);
+    border:1px solid rgba(255,255,255,0.85);
+    color:var(--ink);
+    font-family:'Nunito', sans-serif;
+    font-weight:600;
+    font-size:0.92rem;
+    padding:11px 14px;
+    border-radius:16px;
+    line-height:1.5;
+    max-height:140px;
+    min-height:44px;
+    position:relative;
+  }
+  textarea:focus{
+    outline:none;
+    border-color:var(--blue);
+    box-shadow:0 0 0 3px rgba(0,147,201,0.18);
+  }
+  textarea::placeholder{color:var(--ink-faint);}
+  .send-btn{
+    background:linear-gradient(135deg, var(--green) 0%, var(--blue) 100%);
+    color:#fff;
+    border:1px solid rgba(255,255,255,0.6);
+    border-radius:16px;
+    padding:0 20px;
+    height:44px;
+    font-family:'Nunito', sans-serif;
+    font-weight:800;
+    font-size:0.88rem;
+    cursor:pointer;
+    transition:transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+    flex-shrink:0;
+    box-shadow:0 6px 16px rgba(0,110,140,0.28), inset 0 1px 0 rgba(255,255,255,0.5);
+    position:relative;
+  }
+  .send-btn:disabled{opacity:0.45; cursor:not-allowed;}
+  .send-btn:not(:disabled):hover{ transform:translateY(-1px); box-shadow:0 8px 20px rgba(0,110,140,0.34), inset 0 1px 0 rgba(255,255,255,0.5); }
+  .send-btn:not(:disabled):active{ transform:translateY(0); }
+
+  .hint{
+    max-width:760px;
+    margin:10px auto 0;
+    color:var(--ink-muted);
+    font-size:0.72rem;
+    font-weight:700;
+    text-align:center;
+    position:relative;
+    z-index:1;
+  }
+
+  main::-webkit-scrollbar{width:10px;}
+  main::-webkit-scrollbar-thumb{
+    background:linear-gradient(var(--blue), var(--green));
+    border-radius:6px;
+    border:2px solid transparent;
+    background-clip:padding-box;
+  }
+</style>
+</head>
+<body>
+
+<div id="bgLayer">
+  <svg class="swoosh s1" viewBox="0 0 3200 220" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="g1" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#0093c9"/>
+        <stop offset="50%" stop-color="#37b06b"/>
+        <stop offset="100%" stop-color="#0093c9"/>
+      </linearGradient>
+    </defs>
+    <path d="M0,120 q100,-60 200,0 t200,0 t200,0 t200,0 t200,0 t200,0 t200,0 t200,0 t200,0 t200,0 t200,0 t200,0 t200,0 t200,0 t200,0 t200,0"
+      fill="none" stroke="url(#g1)" stroke-width="3" stroke-linecap="round"/>
+  </svg>
+
+  <svg class="swoosh s2" viewBox="0 0 3200 260" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="g2" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#37b06b"/>
+        <stop offset="50%" stop-color="#0093c9"/>
+        <stop offset="100%" stop-color="#37b06b"/>
+      </linearGradient>
+    </defs>
+    <path d="M0,140 q120,90 240,0 t240,0 t240,0 t240,0 t240,0 t240,0 t240,0 t240,0 t240,0 t240,0 t240,0 t240,0 t240,0"
+      fill="none" stroke="url(#g2)" stroke-width="5" stroke-linecap="round"/>
+  </svg>
+
+  <svg class="swoosh s3" viewBox="0 0 3200 200" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="g3" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#0093c9"/>
+        <stop offset="50%" stop-color="#8fe0c4"/>
+        <stop offset="100%" stop-color="#0093c9"/>
+      </linearGradient>
+    </defs>
+    <path d="M0,100 q90,-45 180,0 t180,0 t180,0 t180,0 t180,0 t180,0 t180,0 t180,0 t180,0 t180,0 t180,0 t180,0 t180,0 t180,0 t180,0 t180,0 t180,0 t180,0"
+      fill="none" stroke="url(#g3)" stroke-width="2.5" stroke-linecap="round"/>
+  </svg>
+
+  <svg class="swoosh s4" viewBox="0 0 3200 180" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="g4" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#37b06b"/>
+        <stop offset="50%" stop-color="#0093c9"/>
+        <stop offset="100%" stop-color="#37b06b"/>
+      </linearGradient>
+    </defs>
+    <path d="M0,90 q140,70 280,0 t280,0 t280,0 t280,0 t280,0 t280,0 t280,0 t280,0 t280,0 t280,0 t280,0"
+      fill="none" stroke="url(#g4)" stroke-width="4" stroke-linecap="round"/>
+  </svg>
+
+  <div class="bokeh b1"></div>
+  <div class="bokeh b2"></div>
+  <div class="bokeh b3"></div>
+  <div class="bokeh b4"></div>
+  <div class="bokeh b5"></div>
+</div>
+
+<header>
+  <div class="header-inner">
+    <div class="title-block">
+      <h1>Цифровая история Казахстана</h1>
+      <p>Научные центры, программы и исследователи. Ответы бота опираются только на встроенную базу материалов — при желании дополните её своими документами.</p>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="clearBtn">Очистить чат</button>
+    </div>
+  </div>
+</header>
+
+<main id="chatArea">
+  <div class="chat-inner" id="chatInner">
+    <div class="empty-state" id="emptyState">
+      <h2>С чего начать</h2>
+      <p>Спросите о научных центрах, госпрограммах оцифровки наследия или исследователях, работающих в области цифровой истории Казахстана. Например:</p>
+      <button class="example-q" data-q="Какие научные центры в Казахстане занимаются цифровой историей?">Какие научные центры в Казахстане занимаются цифровой историей?</button>
+      <button class="example-q" data-q="Расскажи про Кайрата Алимгазинова и его вклад в цифровую историю.">Расскажи про Кайрата Алимгазинова и его вклад в цифровую историю.</button>
+      <button class="example-q" data-q="Какие государственные программы связаны с оцифровкой исторического наследия?">Какие государственные программы связаны с оцифровкой исторического наследия?</button>
+      <button class="example-q" data-q="О чём статья С.А. Жакишевой «Игры разума» или «доказательство жизни» (2020)?">О чём статья С.А. Жакишевой «Игры разума» или «доказательство жизни» (2020)?</button>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="input-inner">
+    <textarea id="userInput" placeholder="Задайте вопрос по теме…" rows="1"></textarea>
+    <button class="send-btn" id="sendBtn">Отправить</button>
+  </div>
+  <div class="hint">История чата сохраняется автоматически на этом устройстве.</div>
+</footer>
+
+<script>
+/* =========================================================
+   БАЗА ЗНАНИЙ
+   Собрана из открытых источников (сентябрь 2026): e-history.kz,
+   сайт Института истории и этнологии им. Ч.Ч. Валиханова (iie.kz),
+   официальные и новостные материалы о госпрограммах, журнал
+   "Историческая информатика" (nbpublish.com).
+   Бот отвечает СТРОГО на основе этого текста.
+   Пополняйте раздел USER_DOCS своими материалами при необходимости.
+========================================================= */
+const KNOWLEDGE_BASE = `
+РАЗДЕЛ 1. ЧТО ТАКОЕ ЦИФРОВАЯ ИСТОРИЯ
+Цифровая история — направление внутри Digital Humanities (цифровых гуманитарных наук), которое применяет
+компьютерные методы — базы данных, количественный анализ источников, оцифровку, ИИ-инструменты — к изучению
+прошлого. В Казахстане это направление развивается на стыке источниковедения, архивного дела и информатики,
+и часто обозначается местными исследователями как «историческая информатика» или «информационное
+источниковедение».
+
+РАЗДЕЛ 2. НАУЧНЫЕ ЦЕНТРЫ И ИНСТИТУТЫ
+
+1) Институт истории государства (Астана, Комитет науки МОН РК)
+Образован в 2008 году. Задача — научно-аналитическое и экспертное обеспечение формирования государственного
+и исторического самосознания, системное обоснование современной истории Казахстана. В структуре пять отделов,
+включая отдел источниковедения, историографии и отечественной истории, а также научно-информационный отдел.
+Институт — один из информационных партнёров портала e-history.kz.
+
+2) Институт истории и этнологии имени Ч.Ч. Валиханова (Алматы)
+Одно из старейших научных учреждений страны, образован в 1945 году (первоначально как Институт истории,
+археологии и этнографии). При институте работает отдел историографии, источниковедения и современной
+методологии, который занимается в том числе цифровыми методами работы с историческими источниками — например,
+созданием баз данных для систематизации источников личного происхождения (мемуаров, дневников). Институт имеет
+филиал в Астане. Также является информационным партнёром e-history.kz.
+
+3) Архив Президента Республики Казахстан
+В 2014–2016 годах в архиве реализована Программа информатизации: массовая оцифровка документов для создания
+электронного архива, внедрена автоматизированная информационная система для комплектования, обеспечения
+сохранности и учёта архивных фондов. Это обеспечило удалённый доступ к архивной информации для казахстанских
+и зарубежных исследователей.
+
+4) Национальный архив РК и Национальный музей РК
+Выступают информационными партнёрами портала «История Казахстана» (e-history.kz), предоставляя материалы
+для оцифровки и научно-популярного представления.
+
+5) Комитет по делам архивов и управления документацией Министерства культуры и спорта РК
+Профильный государственный орган, курирующий архивное дело, в том числе вопросы перехода архивов на цифровые
+системы хранения и учёта.
+
+РАЗДЕЛ 3. ПРОГРАММЫ И ПРОЕКТЫ
+
+1) Портал «История Казахстана» (e-history.kz)
+Научно-популярный интернет-портал, цель которого — систематизированно и качественно представить историю
+Казахстана широкой аудитории, включая школьников и студентов. На портале доступны более 1000 электронных книг
+по истории, архивные документы, подкасты с историками, интерактивные статьи, фото- и видеоматериалы, база
+тестов для подготовки к ЕНТ. Портал активно применяет современные технологии, включая инструменты ИИ, для
+интерпретации научных данных в доступной форме. Информационные партнёры: Национальный архив РК, Архив
+Президента РК, Национальный музей РК, Институт истории и этнологии им. Ч. Валиханова, Институт истории
+государства и другие. У истоков создания портала стоял историк Кайрат Алимгазинов.
+
+2) Электронный научный журнал edu.e-history.kz
+Единственное в Казахстане зарегистрированное электронное научное издание по истории. Задумано как площадка
+для интеграции казахстанской исторической науки с мировым научным сообществом и обмена научной информацией.
+
+3) Государственная программа «Мәдени мұра» (2004–2011)
+Комплекс мер по изучению культурного наследия: открытие и реставрация памятников истории и культуры,
+формирование базы для системного изучения наследия, оцифровка музейных фондов, записей и книжного фонда
+национальной библиотеки.
+
+4) Программа «Рухани жаңғыру» (с 2017 года)
+Одно из направлений программы — цифровизация историко-культурного наследия: оцифровка музейных экспонатов
+и книг в библиотеках страны. По оценке на середину реализации программы было оцифровано свыше 1000
+археологических находок и более 700 тысяч книг переведено в электронный формат.
+
+5) Проект «Архив-2025»
+Концепция модернизации архивного дела и исторического сознания казахстанской нации через развитие цифровых
+систем хранения и доступа к архивным документам.
+
+6) Локальные и отраслевые проекты оцифровки
+Пример — проект «История КарЛАГа в цифровом формате» (Шахтинская централизованная библиотечная система,
+Карагандинская область, в рамках «Рухани жаңғыру»): оцифровка около 400 музейных документов (книги, газеты,
+фотографии, путевые заметки, карты), создание электронного каталога и полнотекстовой базы данных «Карлаг
+в цифровом формате».
+
+7) Международное сотрудничество по сохранению наследия
+Европейский союз совместно с фондом ALIPH финансируют проекты по охране культурного наследия в Центральной
+Азии (включая Казахстан) на сумму около 1,5 млн евро — консервация, документация памятников, развитие
+профессиональных навыков в сфере наследия.
+
+8) Актуальные инициативы
+На портале e-history.kz отмечены обсуждения, например, «Цифровизацию наследия Улуса Джучи обсудили в Алматы»
+(2026 год) — свидетельство продолжающейся работы по цифровым историческим проектам, связанным с наследием
+тюрко-монгольских государств на территории Казахстана.
+
+РАЗДЕЛ 4. ИССЛЕДОВАТЕЛИ
+
+Кайрат Шакаримович Алимгазинов — доктор исторических наук. Один из основателей портала «История Казахстана»
+(e-history.kz), заведующий отделом историографии, источниковедения и современной методологии Института
+истории и этнологии им. Ш. Уалиханова, заместитель директора Архива Президента РК. Ключевая фигура казахстанской
+исторической информатики: автор монографии «Современные технотронные источники: информационный анализ
+исторических гипертекстов» (Алматы, «Елтаным», 2014, 344 с.), а также работ об информационном источниковедении
+и создании баз данных для источников личного происхождения (мемуаров, дневников). Его исследования посвящены
+переходу исторического знания от информатизации к новым цифровым горизонтам, методике систематизации массовых
+исторических источников в унифицированные базы данных.
+
+Ханкельды Абжанов, Жулдызбек Абылхожин, Зардыхан Кинаятулы — научные сотрудники и руководители Института
+истории и этнологии им. Ш. Уалиханова, участвующие в разработке концепций исторического знания и национального
+самосознания, в том числе в контексте работы портала «История Казахстана».
+
+Сауле Аукеновна Жакишева — казахстанский историк, преподаватель Казахского национального университета им. аль-Фараби (КазНУ), специалист в области исторической информатики и теоретических проблем соотношения этой дисциплины с цифровой историей (Digital History) и цифровыми гуманитарными науками (Digital Humanities).
+
+РАЗДЕЛ 5. НАУЧНАЯ ДИСКУССИЯ: СТАТЬЯ С.А. ЖАКИШЕВОЙ «"ИГРЫ РАЗУМА" ИЛИ "ДОКАЗАТЕЛЬСТВО ЖИЗНИ": ИСТОРИЧЕСКАЯ ИНФОРМАТИКА И/ИЛИ ЦИФРОВАЯ ИСТОРИЯ?» (2020)
+
+Библиографические данные: Жакишева С.А. «Игры разума» или «доказательство жизни»: историческая информатика
+и/или цифровая история? // Историческая информатика. — 2020. — № 1. — С. 1–19. DOI: 10.7256/2585-7797.2020.1.31099.
+Статья опубликована в российском рецензируемом журнале «Историческая информатика» (издательство Nota Bene),
+но её автор — казахстанская исследовательница, поэтому работа значима для понимания того, как в Казахстане
+осмысляется место исторической информатики и цифровой истории.
+
+О чём статья. Жакишева анализирует интеграционные процессы, характерные для гуманитарных наук со второй
+половины XX века: как менялась конфигурация междисциплинарных полей и распределение дисциплин внутри
+иерархии наук. Центральный тезис — историческая информатика представляет собой классический пример
+междисциплинарного взаимодействия сразу нескольких областей: истории, источниковедения, прикладной
+математики, математической статистики и информатики. Это взаимодействие связывает историческую науку
+с математизацией и информатизацией, а также с принципами общей теории систем, теории информации
+и синергетики.
+
+Ключевой вопрос статьи — заявленный уже в названии («игры разума» или «доказательство жизни») — состоит
+в том, является ли историческая информатика самостоятельной, жизнеспособной научной дисциплиной
+(«доказательство жизни») или же скорее умозрительной, во многом искусственной конструкцией научного
+сообщества («игра разума»). Автор рассматривает, как «цифровой поворот» повлиял на соотношение между
+исторической информатикой, цифровой историей и цифровыми гуманитарными науками, и разграничивает
+методологические проблемы информационного источниковедения от проблем изучения собственно цифровых
+документов. Вывод статьи — «цифровая революция» открывает перед исторической наукой новые перспективы
+и ставит перед ней новые задачи в XXI веке, что подтверждает жизнеспособность и востребованность
+исторической информатики как научного направления.
+
+Место статьи в дискуссии. Работа Жакишевой вышла в специальном тематическом блоке журнала «Историческая
+информатика», где несколько авторов (в частности, Л.И. Бородкин, Г.В. Можаева, В.Н. Владимиров и другие)
+обсуждали соотношение понятий «историческая информатика», «цифровая история» и «Digital Humanities».
+Статья казахстанской исследовательницы стала частью этой более широкой международной дискуссии о
+терминологии и институциональном статусе цифровых методов в исторической науке — дискуссии, напрямую
+касающейся и того, как цифровая история развивается в самом Казахстане (см. Раздел 1).
+
+РАЗДЕЛ 6. МЕТОДЫ И НАПРАВЛЕНИЯ РАБОТЫ
+— Создание баз данных по массовым и личным историческим источникам (мемуары, дневники, переписи).
+— Оцифровка архивных фондов и внедрение автоматизированных информационных систем учёта и хранения.
+— Применение инструментов искусственного интеллекта для интерпретации и популяризации исторических данных
+  на образовательных платформах.
+— Формирование электронных каталогов и полнотекстовых баз данных по отдельным темам (например, история
+  лагерной системы, петроглифы).
+— Развитие научного и научно-популярного контента (электронный журнал, подкасты, интерактивные материалы).
+— Теоретико-методологическая рефлексия над соотношением исторической информатики и цифровой истории
+  как самостоятельных направлений (см. Раздел 5).
+`;
+
+// Место для собственных материалов пользователя — можно вставлять текст ниже.
+const USER_DOCS = `
+`;
+
+const SYSTEM_PROMPT = `Ты — ассистент-эксперт по теме "Цифровая история в Казахстане: научные центры, программы, исследователи".
+Отвечай ТОЛЬКО на основе материалов ниже (БАЗА ЗНАНИЙ и ДОПОЛНИТЕЛЬНЫЕ МАТЕРИАЛЫ ПОЛЬЗОВАТЕЛЯ). Если в материалах
+нет ответа на вопрос — прямо скажи, что этой информации нет в предоставленных документах, и не придумывай факты.
+Отвечай на русском языке, по существу, структурированно, но без лишней воды. Можно использовать списки, если это
+уместно. Не упоминай, что у тебя есть "система" или "промпт" — просто отвечай как знающий собеседник.
+
+=== БАЗА ЗНАНИЙ ===
+${KNOWLEDGE_BASE}
+
+=== ДОПОЛНИТЕЛЬНЫЕ МАТЕРИАЛЫ ПОЛЬЗОВАТЕЛЯ ===
+${USER_DOCS || "(пока не добавлены)"}
+`;
+
+const STORAGE_KEY = 'kz-digital-history-chat';
+
+let history = []; // {role:'user'|'assistant', content:string}
+
+const chatArea = document.getElementById('chatArea');
+const chatInner = document.getElementById('chatInner');
+const emptyState = document.getElementById('emptyState');
+const userInput = document.getElementById('userInput');
+const sendBtn = document.getElementById('sendBtn');
+const clearBtn = document.getElementById('clearBtn');
+
+function scrollToBottom(){
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+function renderMessage(role, content, opts={}){
+  if(emptyState) emptyState.style.display = 'none';
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ' + (role === 'user' ? 'user' : 'bot');
+
+  const label = document.createElement('div');
+  label.className = 'msg-label';
+  label.textContent = role === 'user' ? 'Вы' : 'Бот';
+  wrap.appendChild(label);
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble' + (opts.error ? ' error' : '');
+  bubble.textContent = content;
+  wrap.appendChild(bubble);
+
+  chatInner.appendChild(wrap);
+  scrollToBottom();
+  return bubble;
+}
+
+function renderTyping(){
+  const wrap = document.createElement('div');
+  wrap.className = 'msg bot';
+  wrap.id = 'typingIndicator';
+  const label = document.createElement('div');
+  label.className = 'msg-label';
+  label.textContent = 'Бот';
+  wrap.appendChild(label);
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = '<span class="typing"><span></span><span></span><span></span></span>';
+  wrap.appendChild(bubble);
+  chatInner.appendChild(wrap);
+  scrollToBottom();
+}
+
+function removeTyping(){
+  const el = document.getElementById('typingIndicator');
+  if(el) el.remove();
+}
+
+async function saveHistory(){
+  try{
+    await window.storage.set(STORAGE_KEY, JSON.stringify(history), false);
+  }catch(e){
+    console.error('Не удалось сохранить историю чата:', e);
+  }
+}
+
+async function loadHistory(){
+  try{
+    const result = await window.storage.get(STORAGE_KEY, false);
+    if(result && result.value){
+      history = JSON.parse(result.value);
+      history.forEach(m => renderMessage(m.role === 'user' ? 'user' : 'bot', m.content));
+    }
+  }catch(e){
+    // ключа ещё нет — это нормально для первого запуска
+    history = [];
+  }
+}
+
+async function clearHistory(){
+  history = [];
+  chatInner.innerHTML = '';
+  chatInner.appendChild(emptyState);
+  emptyState.style.display = '';
+  try{
+    await window.storage.delete(STORAGE_KEY, false);
+  }catch(e){
+    // если ключа нет, delete тоже может бросить ошибку — игнорируем
+  }
+}
+
+async function askClaude(question){
+  const messages = history.map(m => ({role: m.role, content: m.content}));
+
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1000,
+      system: SYSTEM_PROMPT,
+      messages: messages
+    })
+  });
+
+  if(!response.ok){
+    throw new Error('Ошибка запроса: ' + response.status);
+  }
+
+  const data = await response.json();
+  const textBlock = (data.content || []).find(b => b.type === 'text');
+  return textBlock ? textBlock.text : '(пустой ответ)';
+}
+
+async function handleSend(){
+  const text = userInput.value.trim();
+  if(!text) return;
+
+  userInput.value = '';
+  userInput.style.height = 'auto';
+  sendBtn.disabled = true;
+
+  renderMessage('user', text);
+  history.push({role:'user', content:text});
+  await saveHistory();
+
+  renderTyping();
+
+  try{
+    const answer = await askClaude(text);
+    removeTyping();
+    renderMessage('bot', answer);
+    history.push({role:'assistant', content:answer});
+    await saveHistory();
+  }catch(e){
+    removeTyping();
+    renderMessage('bot', 'Не удалось получить ответ. Попробуйте ещё раз через момент. (' + e.message + ')', {error:true});
+  }finally{
+    sendBtn.disabled = false;
+    userInput.focus();
+  }
+}
+
+sendBtn.addEventListener('click', handleSend);
+
+userInput.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    handleSend();
+  }
+});
+
+userInput.addEventListener('input', () => {
+  userInput.style.height = 'auto';
+  userInput.style.height = Math.min(userInput.scrollHeight, 140) + 'px';
+});
+
+clearBtn.addEventListener('click', () => {
+  if(confirm('Очистить историю переписки? Это действие нельзя отменить.')){
+    clearHistory();
+  }
+});
+
+document.querySelectorAll('.example-q').forEach(btn => {
+  btn.addEventListener('click', () => {
+    userInput.value = btn.dataset.q;
+    handleSend();
+  });
+});
+
+loadHistory();
+</script>
+</body>
+</html>
