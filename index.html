@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Цифровая история Казахстана чат-бот</title>
+<title>Цифровая история Казахстана — офлайн-бот</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -376,9 +376,20 @@
 
 <div class="app">
 
+  <header class="topbar glass">
+    <div class="brand">
+      <span class="brand-orb">🕰️</span>
+      <span class="brand-name">История.KZ · офлайн-бот</span>
+    </div>
+    <span class="status-pill" id="statusPill">🟢 работает локально</span>
+  </header>
+
   <section class="info-card glass">
+    <div class="info-top">
+      <div class="avatar">КЗ</div>
+      <div class="info-text">
         <h1>Цифровая история Казахстана</h1>
-        <p>Справочник по научным центрам, госпрограммам и исследователям цифровой истории. Ищет ответ по ключевым словам во встроенной базе фактов.</p>
+        <p>Справочник по научным центрам, госпрограммам и исследователям цифровой истории. Ищет ответ по ключевым словам во встроенной базе фактов и <strong>понимает вопросы даже с опечатками</strong>.</p>
       </div>
     </div>
     <div class="badges" id="badges"></div>
@@ -897,7 +908,7 @@
 </script>
 
 <script>
-/* ================= UI-логика  ================= */
+/* ================= UI-логика (без сети, без API-ключей) ================= */
 (function(){
   'use strict';
   const STORAGE_KEY = 'kz-digital-history-chat-v2';
